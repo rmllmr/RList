@@ -39,11 +39,11 @@ public class RList<E> implements List<E> {
 
     }
 
-    private void linkBefore(E el, Node<E> succ) {
+    private void linkBefore(E el, Node<E> next) {
         // assert succ != null;
-        final Node<E> pred = succ.prev;
-        final Node<E> newNode = new Node(pred, el, succ);
-        succ.prev = newNode;
+        final Node<E> pred = next.prev;
+        final Node<E> newNode = new Node(pred, el, next);
+        next.prev = newNode;
         if (pred == null)
             first = newNode;
         else
@@ -99,11 +99,30 @@ public class RList<E> implements List<E> {
     }
 
     public boolean addAll(Collection c) {
-        return false;
+        Object[] collArray = c.toArray();
+        int numColArray = collArray.length;
+        if (numColArray == 0)
+            return false;
+
+        for (Object el : collArray) {
+            linkLast((E)el);
+        }
+
+        return true;
     }
 
     public boolean addAll(int index, Collection c) {
-        return false;
+
+        Object[] collArray = c.toArray();
+        int numColArray = collArray.length;
+        if (numColArray == 0)
+            return false;
+
+        for (Object el : collArray) {
+            linkBefore((E)el,node(index));
+        }
+
+        return true;
     }
 
     public E get(int index) {
@@ -197,7 +216,19 @@ public class RList<E> implements List<E> {
 
     public boolean removeAll(Collection c) {
 
-        return false;
+        Object[] collArray = c.toArray();
+        int numColArray = collArray.length;
+        if (numColArray == 0)
+            return false;
+
+        for (Object el : collArray) {
+            if (remove((E)el)){}
+            else
+                return false;
+        }
+
+        return true;
+
     }
 
     public void clear() {
