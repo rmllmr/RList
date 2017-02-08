@@ -113,13 +113,13 @@ public class RList<E> implements List<E> {
 
     public boolean addAll(int index, Collection c) {
 
-        Object[] collArray = c.toArray();
-        int numColArray = collArray.length;
-        if (numColArray == 0)
+        Iterator collIter = c.iterator();
+        if (!collIter.hasNext()) {
             return false;
+        }
 
-        for (Object el : collArray) {
-            linkBefore((E)el,node(index));
+        while (collIter.hasNext()){
+            linkBefore((E)collIter.next(),node(index));
         }
 
         return true;
@@ -163,10 +163,11 @@ public class RList<E> implements List<E> {
         f.item = null;
         f.prev = null;
         last = prev;
-        if (prev == null)
+        if (prev == null) {
             first = null;
-        else
+        } else {
             prev.next = null;
+        }
         size--;
         return itemvalue;
     }
@@ -179,15 +180,13 @@ public class RList<E> implements List<E> {
 
         if ( prev == null){
             first = next;
-        }
-        else {
+        } else {
             prev.next = next;
             f.prev = null;
         }
         if ( next == null){
             last = prev;
-        }
-        else {
+        } else {
             next.prev = prev;
             f.next = null;
         }
@@ -216,19 +215,16 @@ public class RList<E> implements List<E> {
 
     public boolean removeAll(Collection c) {
 
-        Object[] collArray = c.toArray();
-        int numColArray = collArray.length;
-        if (numColArray == 0)
+        Iterator collIter = c.iterator();
+        if (!collIter.hasNext()) {
             return false;
+        }
 
-        for (Object el : collArray) {
-            if (remove((E)el)){}
-            else
-                return false;
+        while (collIter.hasNext()){
+            remove((E)collIter.next());
         }
 
         return true;
-
     }
 
     public void clear() {
@@ -246,6 +242,11 @@ public class RList<E> implements List<E> {
 
 
     public Object[] toArray() {
+        Object[] result = new Object[size];
+        int i = 0;
+        for (Node<E> x = first; x != null; x = x.next)
+            result[i++] = x.item;
+        return result;
         return new Object[0];
     }
 
@@ -310,6 +311,7 @@ public class RList<E> implements List<E> {
     }
 
     public Object[] toArray(Object[] a) {
+
         return new Object[0];
     }
 
