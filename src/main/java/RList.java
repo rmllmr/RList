@@ -1,12 +1,12 @@
 
 import java.util.*;
-import java.util.function.Consumer;
+
 
 /**
  * Created by LuMoR on 06.02.2017.
  */
-public class RList<E> extends AbstractSequentialList<E> implements List<E> {
-
+public class RList<E>  implements List<E> {
+/*public class RList<E> extends AbstractSequentialList<E> implements List<E> {*/
     private int size = 0;
     private Node<E> first;
     private Node<E> last;
@@ -286,16 +286,44 @@ public class RList<E> extends AbstractSequentialList<E> implements List<E> {
         return -1;
     }
 
+    private boolean isElementIndex(int index) {
+        return index >= 0 && index < size;
+    }
+
+    private boolean isPositionIndex(int index) {
+        return index >= 0 && index <= size;
+    }
+
+    /**
+     * Constructs an IndexOutOfBoundsException detail message.
+     * Of the many possible refactorings of the error handling code,
+     * this "outlining" performs best with both server and client VMs.
+     */
+    private String outOfBoundsMsg(int index) {
+        return "Index: "+index+", Size: "+size;
+    }
+
+    private void checkElementIndex(int index) {
+        if (!isElementIndex(index))
+            throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
+    }
+
+    private void checkPositionIndex(int index) {
+        if (!isPositionIndex(index))
+            throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
+    }
+
     public Iterator iterator() {
-        return null;
+        return new ListItr(indexOf(first));
     }
 
     public ListIterator listIterator() {
-        return null;
+        return new ListItr(indexOf(first));
     }
 
     public ListIterator listIterator(int index) {
-        return null;
+        checkPositionIndex(index);
+        return new ListItr(index);
     }
 
     public List subList(int fromIndex, int toIndex) {
@@ -319,7 +347,6 @@ public class RList<E> extends AbstractSequentialList<E> implements List<E> {
         private Node<E> lastReturned;
         private Node<E> next;
         private int nextIndex;
-        private int expectedModCount = modCount;
 
         ListItr(int index) {
             // assert isPositionIndex(index);
@@ -332,7 +359,6 @@ public class RList<E> extends AbstractSequentialList<E> implements List<E> {
         }
 
         public E next() {
-            checkForComodification();
             if (!hasNext())
                 throw new NoSuchElementException();
 
@@ -347,7 +373,6 @@ public class RList<E> extends AbstractSequentialList<E> implements List<E> {
         }
 
         public E previous() {
-            checkForComodification();
             if (!hasPrevious())
                 throw new NoSuchElementException();
 
@@ -365,7 +390,6 @@ public class RList<E> extends AbstractSequentialList<E> implements List<E> {
         }
 
         public void remove() {
-            checkForComodification();
             if (lastReturned == null)
                 throw new IllegalStateException();
 
@@ -376,132 +400,25 @@ public class RList<E> extends AbstractSequentialList<E> implements List<E> {
             else
                 nextIndex--;
             lastReturned = null;
-            expectedModCount++;
         }
 
         public void set(E e) {
             if (lastReturned == null)
                 throw new IllegalStateException();
-            checkForComodification();
             lastReturned.item = e;
         }
 
         public void add(E e) {
-            checkForComodification();
             lastReturned = null;
             if (next == null)
                 linkLast(e);
             else
                 linkBefore(e, next);
             nextIndex++;
-            expectedModCount++;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
-            Objects.requireNonNull(action);
-            while (modCount == expectedModCount && nextIndex < size) {
-                action.accept(next.item);
-                lastReturned = next;
-                next = next.next;
-                nextIndex++;
-            }
-            checkForComodification();
-        }
-
-        final void checkForComodification() {
-            if (modCount != expectedModCount)
-                throw new ConcurrentModificationException();
-        }
     }
 
-
-    static final class LLSpliterator<E> implements Spliterator<E> {
-        static final int BATCH_UNIT = 1 << 10;  // batch array size increment
-        static final int MAX_BATCH = 1 << 25;  // max batch array size;
-        final RList<E> list; // null OK unless traversed
-        Node<E> current;      // current node; null until initialized
-        int est;              // size estimate; -1 until first needed
-        int expectedModCount; // initialized when est set
-        int batch;            // batch size for splits
-
-        LLSpliterator(RList<E> list, int est, int expectedModCount) {
-            this.list = list;
-            this.est = est;
-            this.expectedModCount = expectedModCount;
-        }
-
-        final int getEst() {
-            int s; // force initialization
-            final RList<E> lst;
-            if ((s = est) < 0) {
-                if ((lst = list) == null)
-                    s = est = 0;
-                else {
-                    expectedModCount = lst.modCount;
-                    current = lst.first;
-                    s = est = lst.size;
-                }
-            }
-            return s;
-        }
-
-        public long estimateSize() { return (long) getEst(); }
-
-        public Spliterator<E> trySplit() {
-            Node<E> p;
-            int s = getEst();
-            if (s > 1 && (p = current) != null) {
-                int n = batch + BATCH_UNIT;
-                if (n > s)
-                    n = s;
-                if (n > MAX_BATCH)
-                    n = MAX_BATCH;
-                Object[] a = new Object[n];
-                int j = 0;
-                do { a[j++] = p.item; } while ((p = p.next) != null && j < n);
-                current = p;
-                batch = j;
-                est = s - j;
-                return Spliterators.spliterator(a, 0, j, Spliterator.ORDERED);
-            }
-            return null;
-        }
-
-        public void forEachRemaining(Consumer<? super E> action) {
-            Node<E> p; int n;
-            if (action == null) throw new NullPointerException();
-            if ((n = getEst()) > 0 && (p = current) != null) {
-                current = null;
-                est = 0;
-                do {
-                    E e = p.item;
-                    p = p.next;
-                    action.accept(e);
-                } while (p != null && --n > 0);
-            }
-            if (list.modCount != expectedModCount)
-                throw new ConcurrentModificationException();
-        }
-
-        public boolean tryAdvance(Consumer<? super E> action) {
-            Node<E> p;
-            if (action == null) throw new NullPointerException();
-            if (getEst() > 0 && (p = current) != null) {
-                --est;
-                E e = p.item;
-                current = p.next;
-                action.accept(e);
-                if (list.modCount != expectedModCount)
-                    throw new ConcurrentModificationException();
-                return true;
-            }
-            return false;
-        }
-
-        public int characteristics() {
-            return Spliterator.ORDERED | Spliterator.SIZED | Spliterator.SUBSIZED;
-        }
-    }
     private static class Node<E> {
         E item;
         Node<E> next;
